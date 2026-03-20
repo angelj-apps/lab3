@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Lab 3</title>
+</head>
+<body>
+    <h1>Lab 3<h1>
+  <h2>Part 1: Babbling Brook in WebAudio</h2>
+  <button id="startBtn">Start Sound</button>
+
+  <script src="babblingBrook.js"></script>
+
+  <h2>Part 2: Bell in WebAudio</h2>
+  <button id="bellBtn">Start Sound</button>
+
+  <script src="bell.js"></script>
+
+  <h2>Part 3: Blog Post</h2>
+
+  <p>For this assignment, I aimed to recreate the sound of a classic telephone bell that has a bright percussive strike and a long ringing decay. The goal was to simulate the timbre, attack, and decay of a real bell using WebAudio API nodes.
+
+Key Parts of the Code
+
+Partials / Oscillators
+I used four sine-wave oscillators to model the bell’s partials: 450 Hz (fundamental), 900 Hz, 1350 Hz, and 1800 Hz. To make the bell sound realistic, I slightly detuned each partial and gave each a tiny random start offset. This prevents the sound from feeling like a perfectly harmonic string pluck and adds the metallic shimmer typical of bells.
+
+Master Gain / Envelope
+A GainNode controls the overall amplitude. Its gain follows an exponential decay over ~3 seconds, simulating the natural ringing of a bell.
+
+Strike / Mallet Simulation
+I added a short burst of white noise (20 ms) at the start to simulate the mallet hitting the bell. The amplitude is carefully controlled, and the gain decays very fast, so it adds a percussive attack without causing distortion or clipping.
+
+Synthesis Techniques and Choices
+
+Additive Synthesis: The bell’s tone is defined by its partials. Using multiple sine oscillators (each representing a partial) is a classic additive synthesis approach, which allows fine control over frequency and amplitude.
+
+Envelope Shaping: The master gain shapes the overall amplitude over time, creating a realistic exponential decay that mimics a ringing bell.
+
+Noise Synthesis for Percussion: A short white-noise burst simulates the initial strike. By controlling its amplitude and duration, it creates a percussive attack without clipping or harsh artifacts.
+
+Detune / Timing Offsets: Small detuning and random offsets between partials add realism by breaking perfect harmonic alignment, producing the metallic shimmer of a real bell.</p>
+
+
+
+</body>
+</html>
