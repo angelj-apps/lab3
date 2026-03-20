@@ -18,11 +18,13 @@
 
   <h2>Part 3: Blog Post</h2>
 
-  <p>For this assignment, I aimed to recreate the sound of a classic telephone bell that has a bright percussive strike and a long ringing decay. The goal was to simulate the timbre, attack, and decay of a real bell using WebAudio API nodes.
+  <p>For this assignment, I aimed to recreate the sound of a classic telephone bell that has a bright percussive strike and a long ringing decay. The goal was to simulate the timbre, attack, and decay of a real bell using WebAudio API nodes.</p>
 
-Key Parts of the Code
+<p> Key Parts of the Code </p>
 
-Partials / Oscillators
+  <img src="Lab3Diagram.svg" alt="Lab 3 Audio Signal Flow" width="600">
+  
+<p>Partials / Oscillators
 I used four sine-wave oscillators to model the bell’s partials: 450 Hz (fundamental), 900 Hz, 1350 Hz, and 1800 Hz. To make the bell sound realistic, I slightly detuned each partial and gave each a tiny random start offset. This prevents the sound from feeling like a perfectly harmonic string pluck and adds the metallic shimmer typical of bells.
 
 Master Gain / Envelope
