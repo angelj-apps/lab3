@@ -19,16 +19,26 @@ function createBrownNoise(audioCtx) {
 }
 
 const startBtn = document.getElementById("startBtn");
-startBtn.addEventListener("click", () => {
+const brookLabel = document.getElementById("brookLabel");
+const brookIcon = document.getElementById("brookIcon");
+let brookNodes = null;
 
-    // 1. Create AudioContext
+const PLAY_ICON = '<path d="M3 2.5v11l9-5.5-9-5.5z"/>';
+const STOP_ICON = '<path d="M3 3h10v10H3V3z"/>';
+
+function setBrookButtonState(playing) {
+    startBtn.disabled = false;
+    startBtn.classList.toggle("is-playing", playing);
+    brookLabel.textContent = playing ? "Stop Sound" : "Start Sound";
+    brookIcon.innerHTML = playing ? STOP_ICON : PLAY_ICON;
+}
+
+function startBrook() {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-    // 2. Create two BrownNoise sources
-    const bn1 = createBrownNoise(audioCtx); // main sound
-    const bn2 = createBrownNoise(audioCtx); // modulator
+    const bn1 = createBrownNoise(audioCtx);
+    const bn2 = createBrownNoise(audioCtx);
 
-    // LPFs
     const lpf1 = audioCtx.createBiquadFilter();
     lpf1.type = "lowpass";
     lpf1.frequency.value = 300;
@@ -37,29 +47,47 @@ startBtn.addEventListener("click", () => {
     lpf2.type = "lowpass";
     lpf2.frequency.value = 20;
 
-    //Create RHPF
     const rhpf = audioCtx.createBiquadFilter();
     rhpf.type = "highpass";
     rhpf.Q.value = 40;
 
-    //Create GainNode to scale modulator
     const modGain = audioCtx.createGain();
-    modGain.gain.value = 600; // scales LPF2 output
+    modGain.gain.value = 600;
 
-    //Create ConstantSourceNode to add 500 Hz offset
     const offset = audioCtx.createConstantSource();
-    offset.offset.value = 300;  //<---s
+    offset.offset.value = 300;
     offset.start();
 
-    //Connect nodes
-    bn1.connect(lpf1).connect(rhpf).connect(audioCtx.destination); // main sound
-    bn2.connect(lpf2).connect(modGain).connect(rhpf.frequency);     // modulation
-    offset.connect(rhpf.frequency);                                 
+    bn1.connect(lpf1).connect(rhpf).connect(audioCtx.destination);
+    bn2.connect(lpf2).connect(modGain).connect(rhpf.frequency);
+    offset.connect(rhpf.frequency);
 
-    //Start sources
     bn1.start();
     bn2.start();
 
-    // Optional: disable button to prevent multiple clicks
-    startBtn.disabled = true;
+    brookNodes = { audioCtx, bn1, bn2, offset };
+    setBrookButtonState(true);
+}
+
+function stopBrook() {
+    if (!brookNodes) return;
+
+    const { audioCtx, bn1, bn2, offset } = brookNodes;
+    try {
+        bn1.stop();
+        bn2.stop();
+        offset.stop();
+        audioCtx.close();
+    } finally {
+        brookNodes = null;
+        setBrookButtonState(false);
+    }
+}
+
+startBtn.addEventListener("click", () => {
+    if (brookNodes) {
+        stopBrook();
+    } else {
+        startBrook();
+    }
 });

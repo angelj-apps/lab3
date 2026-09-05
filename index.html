@@ -1,49 +1,368 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Lab 3</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lab 3: Web Audio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1419;
+      --surface: #1a222d;
+      --surface-raised: #232d3b;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8edf4;
+      --text-muted: #8b9cb3;
+      --brook: #3d9a8b;
+      --brook-glow: rgba(61, 154, 139, 0.35);
+      --bell: #c9a227;
+      --bell-glow: rgba(201, 162, 39, 0.35);
+      --accent: #6b8cce;
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      min-height: 100vh;
+    }
+
+    /* subtle ambient background */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(61, 154, 139, 0.12), transparent),
+        radial-gradient(ellipse 60% 40% at 85% 10%, rgba(201, 162, 39, 0.08), transparent),
+        radial-gradient(ellipse 50% 30% at 50% 100%, rgba(107, 140, 206, 0.06), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 4rem;
+    }
+
+    /* ── header ── */
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    h1 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: clamp(2.4rem, 6vw, 3.4rem);
+      font-weight: 400;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      margin-top: 0.75rem;
+      color: var(--text-muted);
+      font-size: 1.05rem;
+    }
+
+    /* ── demo cards ── */
+    .demos {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-bottom: 3.5rem;
+    }
+
+    @media (max-width: 620px) {
+      .demos { grid-template-columns: 1fr; }
+    }
+
+    .demo-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .demo-card:hover {
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .demo-card--brook:hover { box-shadow: 0 0 40px var(--brook-glow); }
+    .demo-card--bell:hover  { box-shadow: 0 0 40px var(--bell-glow); }
+
+    .demo-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+    }
+
+    .demo-card--brook .demo-icon {
+      background: rgba(61, 154, 139, 0.15);
+      color: var(--brook);
+    }
+
+    .demo-card--bell .demo-icon {
+      background: rgba(201, 162, 39, 0.15);
+      color: var(--bell);
+    }
+
+    .demo-card h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .demo-card p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    /* ── buttons ── */
+    .play-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.75rem 1.25rem;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    }
+
+    .play-btn:active:not(:disabled) { transform: scale(0.97); }
+
+    .play-btn--brook {
+      background: var(--brook);
+      color: #fff;
+    }
+
+    .play-btn--brook:hover:not(:disabled) {
+      box-shadow: 0 4px 20px var(--brook-glow);
+    }
+
+    .play-btn--brook.is-playing {
+      background: #2a5f56;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.25);
+    }
+
+    .play-btn--brook.is-playing:hover:not(:disabled) {
+      background: #245349;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35), 0 4px 20px var(--brook-glow);
+    }
+
+    .play-btn--bell {
+      background: var(--bell);
+      color: #1a1508;
+    }
+
+    .play-btn--bell:hover:not(:disabled) {
+      box-shadow: 0 4px 20px var(--bell-glow);
+    }
+
+    .play-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .play-btn svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    /* ── blog section ── */
+    .blog {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2.25rem 2rem;
+    }
+
+    .blog > h2 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.75rem;
+      font-weight: 400;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .blog > p:first-of-type {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+
+    .blog h3 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 2rem 0 0.75rem;
+    }
+
+    .blog h3:first-of-type { margin-top: 0; }
+
+    .diagram-wrap {
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1.5rem;
+      margin: 1.25rem 0 2rem;
+      text-align: center;
+    }
+
+    .diagram-wrap img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+
+    .blog ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+    }
+
+    .blog li {
+      padding-left: 1.1rem;
+      border-left: 2px solid var(--border);
+    }
+
+    .blog li strong {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      color: var(--text);
+    }
+
+    .blog li span {
+      font-size: 0.925rem;
+      color: var(--text-muted);
+    }
+  </style>
 </head>
-<body style="background-color: #DAB1DA;">
-    <h1>Lab 3<h1>
-  <h2>Part 1: Babbling Brook in WebAudio</h2>
-  <button id="startBtn">Start Sound</button>
+<body>
+  <div class="page">
 
-  <script src="babblingBrook.js"></script>
+    <header>
+      <h1>Lab 3</h1>
+      <p class="subtitle">Procedural sound synthesis. Babbling brook &amp; telephone bell.</p>
+    </header>
 
-  <h2>Part 2: Bell in WebAudio</h2>
-  <button id="bellBtn">Start Sound</button>
+    <section class="demos" aria-label="Sound demos">
 
+      <article class="demo-card demo-card--brook">
+        <div class="demo-icon" aria-hidden="true">〰️</div>
+        <h2>Part 1: Babbling Brook</h2>
+        <p>Brown noise through a resonant high-pass filter, modulated for a flowing water texture.</p>
+        <button id="startBtn" class="play-btn play-btn--brook" type="button">
+          <svg id="brookIcon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 2.5v11l9-5.5-9-5.5z"/></svg>
+          <span id="brookLabel">Start Sound</span>
+        </button>
+      </article>
+
+      <article class="demo-card demo-card--bell">
+        <div class="demo-icon" aria-hidden="true">🔔</div>
+        <h2>Part 2: Telephone Bell</h2>
+        <p>Additive sine partials with a percussive noise strike and exponential decay envelope.</p>
+        <button id="bellBtn" class="play-btn play-btn--bell">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 2.5v11l9-5.5-9-5.5z"/></svg>
+          Start Sound
+        </button>
+      </article>
+
+    </section>
+
+    <section class="blog">
+      <h2>Part 3: Blog Post</h2>
+
+      <p>For this assignment, I aimed to recreate the sound of a classic telephone bell that has a bright percussive strike and a long ringing decay. The goal was to simulate the timbre, attack, and decay of a real bell using WebAudio API nodes.</p>
+
+      <h3>Signal Flow</h3>
+      <div class="diagram-wrap">
+        <img src="img/Lab3Diagram.svg" alt="Lab 3 Audio Signal Flow">
+      </div>
+
+      <h3>Key Parts of the Code</h3>
+      <ul>
+        <li>
+          <strong>Partials / Oscillators</strong>
+          <span>Four sine-wave oscillators model the bell's partials: 450 Hz (fundamental), 900 Hz, 1350 Hz, and 1800 Hz. Each partial is slightly detuned with a tiny random start offset to prevent a perfectly harmonic pluck and add the metallic shimmer typical of bells.</span>
+        </li>
+        <li>
+          <strong>Master Gain / Envelope</strong>
+          <span>A GainNode controls overall amplitude with an exponential decay over ~3 seconds, simulating the natural ringing of a bell.</span>
+        </li>
+        <li>
+          <strong>Strike / Mallet Simulation</strong>
+          <span>A short 20 ms burst of white noise at the start simulates the mallet hitting the bell. Amplitude is kept low and the gain decays very fast, adding a percussive attack without clipping.</span>
+        </li>
+      </ul>
+
+      <h3>Synthesis Techniques and Choices</h3>
+      <ul>
+        <li>
+          <strong>Additive Synthesis</strong>
+          <span>The bell's tone is defined by its partials. Multiple sine oscillators — each representing a partial — give fine control over frequency and amplitude.</span>
+        </li>
+        <li>
+          <strong>Envelope Shaping</strong>
+          <span>The master gain shapes overall amplitude over time, creating a realistic exponential decay that mimics a ringing bell.</span>
+        </li>
+        <li>
+          <strong>Noise Synthesis for Percussion</strong>
+          <span>A short white-noise burst simulates the initial strike. Controlling its amplitude and duration creates a percussive attack without harsh artifacts.</span>
+        </li>
+        <li>
+          <strong>Detune / Timing Offsets</strong>
+          <span>Small detuning and random offsets between partials break perfect harmonic alignment, producing the metallic shimmer of a real bell.</span>
+        </li>
+      </ul>
+    </section>
+
+  </div>
+
+  <script src="babblingBrook.js?v=2"></script>
   <script src="bell.js"></script>
-
-  <h2>Part 3: Blog Post</h2>
-
-  <p>For this assignment, I aimed to recreate the sound of a classic telephone bell that has a bright percussive strike and a long ringing decay. The goal was to simulate the timbre, attack, and decay of a real bell using WebAudio API nodes.</p>
-
-<p> Key Parts of the Code </p>
-
-  <img src="img/Lab3Diagram.svg" alt="Lab 3 Audio Signal Flow" width="600">
-  
-<p>Partials / Oscillators
-I used four sine-wave oscillators to model the bell’s partials: 450 Hz (fundamental), 900 Hz, 1350 Hz, and 1800 Hz. To make the bell sound realistic, I slightly detuned each partial and gave each a tiny random start offset. This prevents the sound from feeling like a perfectly harmonic string pluck and adds the metallic shimmer typical of bells.
-
-Master Gain / Envelope
-A GainNode controls the overall amplitude. Its gain follows an exponential decay over ~3 seconds, simulating the natural ringing of a bell.
-
-Strike / Mallet Simulation
-I added a short burst of white noise (20 ms) at the start to simulate the mallet hitting the bell. The amplitude is carefully controlled, and the gain decays very fast, so it adds a percussive attack without causing distortion or clipping.
-
-Synthesis Techniques and Choices
-
-Additive Synthesis: The bell’s tone is defined by its partials. Using multiple sine oscillators (each representing a partial) is a classic additive synthesis approach, which allows fine control over frequency and amplitude.
-
-Envelope Shaping: The master gain shapes the overall amplitude over time, creating a realistic exponential decay that mimics a ringing bell.
-
-Noise Synthesis for Percussion: A short white-noise burst simulates the initial strike. By controlling its amplitude and duration, it creates a percussive attack without clipping or harsh artifacts.
-
-Detune / Timing Offsets: Small detuning and random offsets between partials add realism by breaking perfect harmonic alignment, producing the metallic shimmer of a real bell.</p>
-
-
-
 </body>
 </html>
